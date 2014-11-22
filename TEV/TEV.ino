@@ -1,4 +1,4 @@
-#if(DEBUG) // debug on Linux
+#if(!AVR) // debug on Linux, OSX, other PC
     using namespace std;
     #include <iostream>
     #include <unistd.h>
@@ -38,7 +38,11 @@ static bool verbose=false;      // turn on/off verbose crap. Make it const and t
 
 /**
  * LL is a template class which adds the linked list to objects of type Item
- * which are the various Event types
+ * which are the various Event types. It use a singly linked list to minimize
+ * RAM footprint. Lists are expected to be relatively short so traversing the
+ * list from the start to find the previous element it should mot take too 
+ * long. It uses a sentinel to point tothe first real item in the list and the
+ * last item in the list points to the sentinel.
  */
 
 template<class Item> class LL {
@@ -48,6 +52,7 @@ private:
 	Item*    pItem;                 // event descriptor
 	LL():pItem((Item*)0),pNext(this){}; // can't construct w/out an Item except for the special case in sentinel()
 public:
+        // return status of list manipulation operations
  	enum rs {
 		OK=0,                   // return status - operation succeeded
 		NAK=1,                  // general bad status
@@ -59,7 +64,7 @@ public:
 	rs push();                              // push an Item on to he front of the queue
 	LL* next(){return pNext;};              // return pointer to next iutem in list
 	LL* previous();                         // pointer to previous item in list
-	static LL* begin(){return sentinel().pNext;};   // pointer to first item in list (past tthe sentinel)
+	static LL* begin(){return sentinel().pNext;};   // pointer to first item in list (past the sentinel)
 	static LL* end(){return &sentinel();};  // pointer to end of list (e.g. the sentinel)
 	LL* erase();                            // remove this item from the list
     static int& size(){static int elementCount=0; return elementCount;};
@@ -73,17 +78,17 @@ typename LL<Item>::rs LL<Item>::add() {
     if( this == end())            // this would be bad!
         return BAD_DUP;
 	if (pNext == this) {                // should be point to itself right now
-		LL<Item>* pLL = LL<Item>::sentinel().pNext; // point to head of list
+	  LL<Item>* pLL = LL<Item>::sentinel().pNext; // point to head of list
 
-		while (pLL->pNext != &LL<Item>::sentinel()) // Does this one point toward the sentinel (i.e. end of list)
-			pLL = pLL->pNext;
+	  while (pLL->pNext != &LL<Item>::sentinel()) // Does this one point toward the sentinel (i.e. end of list)
+	    pLL = pLL->pNext;
 
-		pLL->pNext = this;              // make end of list point to the one to add
-        pNext = &LL<Item>::sentinel();     // and now mark it as the new end of the list
-        size()++;
-		return LL<Item>::OK;
+            pLL->pNext = this;              // make end of list point to the one to add
+            pNext = &LL<Item>::sentinel();     // and now mark it as the new end of the list
+            size()++;
+            return LL<Item>::OK;
 	} else {
-		return LL<Item>::BAD_DUP;
+	    return LL<Item>::BAD_DUP;
 	}
 }
 
@@ -111,7 +116,7 @@ LL<Item>* LL<Item>::previous()
     return pLL;
 }
 
-#if(DEBUG)
+#if(!AVR)
 template<class Item>
 void LL<Item>::walk()
 {
@@ -149,12 +154,17 @@ LL<Item>* LL<Item>::erase()
     return pLL->pNext;      // should never get here
 }
 
+/*
+ * Generic Event - one can just chain a bunch of these together and
+ * execute them. Not very interesting but the simplest case.
+ */
 class Event { // callback makes this a one shot event (won't execute until it is added back to the list.)
 public:
     Event(){};
     virtual bool callback(){ if (verbose) coln( "Event:"); return false;};
 };
 
+// derive my event from the generic one so I can provide my own callback.
 class MyEvent : public Event {
 protected:
     int     id;
@@ -179,7 +189,12 @@ void LL<Event>::doItems()
 
 typedef unsigned long ulong; // unsigned long gets a bit tedious
 
-class Timer { // default timer is as oneshot ( data member is redundant but kept here to keep this object more general)
+/* 
+ * Timer class gets a little more interesting. The default behavior
+ * is a one shot but given a non-zero period will be periodic.
+ *
+ */
+class Timer { 
 private:
     ulong   counter;
     ulong   period;
@@ -202,8 +217,6 @@ void LL<Timer>::doItems()
 
     if(!deltaMillis)
         return;
-
-    //if(verbose) walk();
 
     // iterate through timers to see which ones have downconted to or beyond zero
     for(LL<Timer>* pLL = begin(); pLL != end(); )
@@ -231,7 +244,6 @@ void LL<Timer>::doItems()
             pLL->pItem->setCounter(pLL->pItem->getCounter()-deltaMillis);
             pLL = pLL->next();
         }
-    //sleep(1);
     }
     prevMillis = nowMillis;
 }
@@ -268,9 +280,9 @@ public:
 };
 
 
+#if defined DIGITAL
 
-/*
-class Ditital { // Monitor a digital input
+class Digital { // Monitor a digital input
 private:
     ulong   counter;
     ulong   period;
@@ -327,10 +339,10 @@ void LL<Timer>::doItems()
     prevMillis = nowMillis;
 }
 
-*/
+#endif //defined DIGITAL
 
 
-#if(DEBUG) // debug on Linux
+#if(!AVR) // debug on Linux, OSX, other PC, OSX, other PC
 int main()
 #else
 void setup()
@@ -552,10 +564,6 @@ void loop()
     else
         { coln( "FAILED " ); }
         
-
-    //millisVal++; LL<Timer>::doItems(); 
-    //millisVal++; LL<Timer>::doItems(); 
-    //millisVal++; LL<Timer>::doItems(); 
     t1.setCounter(t1.getPeriod());  t1.clearCallCount();
     t2.setCounter(t2.getPeriod());  t2.clearCallCount();
     t3.setCounter(t3.getPeriod());  t3.clearCallCount();
@@ -626,7 +634,7 @@ void loop()
     else
         { coln( "FAILED" ); } 
 
-#if(DEBUG) // debug on Linux
+#if(!AVR) // debug on Linux, OSX, other PC, OSX, other PC
     return 0;
 #else
     delay(180000); // 3 minutes
