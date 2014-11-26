@@ -1,6 +1,6 @@
 #if defined AVR // run on Arduino
-
 #include "Arduino.h"
+
 
 //typedef unsigned long ulong; // unsigned long int gets a bit tedious
 typedef unsigned long int uLong;
@@ -47,6 +47,17 @@ void delay(unsigned int n) {
   millisVal+=n;
 }
 
+static const int INPUT=1;
+void pinMode(int pin, int direction)
+{
+    return;
+}
+
+static bool pinVals[19]; // number of digital input pins
+bool digitalRead(unsigned int p) { return pinVals[p]; }
+
+#define X(x) x
+
 #endif // defined AVR 
 
 // #define NDEBUG  uncomment to disable asserts.
@@ -59,7 +70,7 @@ static bool verbose=false;      // turn on/off verbose crap. Make it const and t
 
 
 class MyTimer: 
-public Timer  // periodic timer by default
+public efl::Timer  // periodic timer by default
 {
 private:
   virtual bool callback(uLong late) {
@@ -74,7 +85,7 @@ private:
   int     callCount;
 public:
   MyTimer(int i, uLong c=1, uLong p=1):
-  Timer(c,p),id(i),callCount(0) {
+  efl::Timer(c,p),id(i),callCount(0) {
   };
   int getCallCount() {
     return callCount;
@@ -87,14 +98,14 @@ public:
 };
 
 class MyOneShotTimer: 
-public Timer
+public efl::Timer
 {
 private:
   virtual bool callback(uLong late)
   {
     callCount++;
     if (verbose) {
-      co( "MyOneShotTimer: ");
+      co( X("MyOneShotTimer: "));
       coln(id);
     }
     return retVal;
@@ -104,7 +115,7 @@ private:
   bool    retVal;
 public:
   MyOneShotTimer(int i, unsigned long c):
-  Timer(c,0),id(i),callCount(0),retVal(false) {
+  efl::Timer(c,0),id(i),callCount(0),retVal(false) {
   };
   int getCallCount() {
     return callCount;
@@ -123,7 +134,7 @@ public:
 
 // derive my event from the generic one so I can provide my own callback.
 class MyEvent : 
-public Event {
+public efl::Event {
 protected:
   int     id;
 public:
@@ -140,7 +151,8 @@ public:
 };
 
 class RepeatEvent: 
-public MyEvent { // this event remains in the queue and will execute each time Event list is examined
+public MyEvent  // this event remains in the queue and will execute each time Event list is examined
+{
 public:
   RepeatEvent(int n):
   MyEvent(n) {
@@ -172,34 +184,34 @@ int main()
   MyEvent         e3(3);
   RepeatEvent     re1(4);
 
-  LL<Event>       le1(&e1);
-  LL<Event>       le2(&e2);
-  LL<Event>       le3(&e3);
-  LL<Event>       lre1(&re1);
+  efl::LL<efl::Event>       le1(&e1);
+  efl::LL<efl::Event>       le2(&e2);
+  efl::LL<efl::Event>       le3(&e3);
+  efl::LL<efl::Event>       lre1(&re1);
 
-  LL<Event>*  pScratchE;
+#if defined(NOWHERE)
+  efl::LL<efl::Event>*  pScratchE;
 
 
   /* codify the regression tests */
 
-  coln( "LL<Event> tests");
+  coln( "efl::LL<efl::Event> tests");
 
-#if defined(NOWHERE)
 
   delay(10000);
   co( "erase() w/o add() ..............................................");
-  if( le1.erase() == LL<Event>::begin() && le1.size() == 0 )
+  if( le1.erase() == efl::LL<efl::Event>::begin() && le1.size() == 0 )
   {
     coln( "OK" );
   }
   else
   {
-    coln("FAILED "); /* co( le1.erase() ); co( " " ); co(  LL<Event>::begin() ); co( " " ); coln(le1.size());*/
+    coln("FAILED "); /* co( le1.erase() ); co( " " ); co(  efl::LL<efl::Event>::begin() ); co( " " ); coln(le1.size());*/
   }
 
   co( "add() ..........................................................");
-  if( le1.add() ==  LL<Event>::OK && (pScratchE = LL<Event>::begin()) == &le1 && le1.size() == 1
-    && pScratchE->next() == LL<Event>::end() )
+  if( le1.add() ==  efl::LL<efl::Event>::OK && (pScratchE = efl::LL<efl::Event>::begin()) == &le1 && le1.size() == 1
+    && pScratchE->next() == efl::LL<efl::Event>::end() )
   {
     coln( "OK" );
   }
@@ -209,7 +221,7 @@ int main()
   }
 
   co( "erase().........................................................");
-  if( le1.erase() == LL<Event>::end() && le1.size() == 0 )
+  if( le1.erase() == efl::LL<efl::Event>::end() && le1.size() == 0 )
   {
     coln( "OK" );
   }
@@ -220,7 +232,7 @@ int main()
 
   le1.add();
   co( "add() /dup......................................................");
-  if( le1.add() == LL<Event>::BAD_DUP && LL<Event>::size() == 1  )
+  if( le1.add() == efl::LL<efl::Event>::BAD_DUP && efl::LL<efl::Event>::size() == 1  )
   {
     coln( "OK" );
   }
@@ -253,7 +265,7 @@ int main()
   }
 
   co( "Adding 1,3 and removing the first...............................");
-  if( le1.add() == LL<Event>::OK && le3.add() == LL<Event>::OK  && le2.erase() == le2.begin() && le2.size() == 2 )
+  if( le1.add() == efl::LL<efl::Event>::OK && le3.add() == efl::LL<efl::Event>::OK  && le2.erase() == le2.begin() && le2.size() == 2 )
   {
     coln("OK");
   }
@@ -263,7 +275,7 @@ int main()
   }
 
   co( "Adding 2 to front and removing middle...........................");
-  if( le2.add() == LL<Event>::OK && le3.erase() == le2.begin()->next() && le2.size() == 2 )
+  if( le2.add() == efl::LL<efl::Event>::OK && le3.erase() == le2.begin()->next() && le2.size() == 2 )
   {
     coln("OK");
   }
@@ -283,7 +295,7 @@ int main()
   }
 
   co( "Add and remove and try to remove sentinel.......................");
-  if( le1.add() ==  LL<Event>::OK && le1.erase() == le1.end() && le2.size() == 0
+  if( le1.add() ==  efl::LL<efl::Event>::OK && le1.erase() == le1.end() && le2.size() == 0
     && le1.end()->erase() == le1.end() && le2.size() == 0 )
   {
     coln("OK");
@@ -294,7 +306,7 @@ int main()
   }
 
   co( "Try to add sentinel.............................................");
-  if( le1.end()->add() == LL<Event>::BAD_DUP && le2.size() == 0 )
+  if( le1.end()->add() == efl::LL<efl::Event>::BAD_DUP && le2.size() == 0 )
   {
     coln("OK");
   }
@@ -304,7 +316,7 @@ int main()
   }
 
   co( "Try to remove sentinel..........................................");
-  if( le1.end()->erase() ==  LL<Event>::end() && le2.size() == 0 )
+  if( le1.end()->erase() ==  efl::LL<efl::Event>::end() && le2.size() == 0 )
   {
     coln("OK");
   }
@@ -316,11 +328,11 @@ int main()
 
   co( "Check begin(), end(), previous() and next() on empty list.......");
   bool result=true;   // set default to true
-  if( !(LL<Event>::end() ==  LL<Event>::begin() && le2.size() == 0 ))
+  if( !(efl::LL<efl::Event>::end() ==  efl::LL<efl::Event>::begin() && le2.size() == 0 ))
     result = false;
-  if( LL<Event>::begin()->next() != LL<Event>::end())
+  if( efl::LL<efl::Event>::begin()->next() != efl::LL<efl::Event>::end())
     result = false;
-  if( LL<Event>::begin()->previous() != LL<Event>::end())
+  if( efl::LL<efl::Event>::begin()->previous() != efl::LL<efl::Event>::end())
     result = false;
 
   if(result)
@@ -334,16 +346,16 @@ int main()
 
   co( "Check begin(), end(), previous() and next() on list w/one.......");
   result = true;
-  if( le1.add() != LL<Event>::OK )
+  if( le1.add() != efl::LL<efl::Event>::OK )
     result = false;
   ;
-  if( (LL<Event>::begin() != &le1 || le1.size() != 1 ))
+  if( (efl::LL<efl::Event>::begin() != &le1 || le1.size() != 1 ))
     result = false;
-  if( LL<Event>::begin()->next() != LL<Event>::end())
+  if( efl::LL<efl::Event>::begin()->next() != efl::LL<efl::Event>::end())
     result = false;
-  if( le1.next() != LL<Event>::end())
+  if( le1.next() != efl::LL<efl::Event>::end())
     result = false;
-  if( LL<Event>::end()->previous() != &le1)
+  if( efl::LL<efl::Event>::end()->previous() != &le1)
     result = false;
 
   if(result)
@@ -356,25 +368,25 @@ int main()
   }
 
   co( "Check begin(), end(), previous() and next() on list w/three.....");
-  if( le2.add() == LL<Event>::OK && le3.add() == LL<Event>::OK)
+  if( le2.add() == efl::LL<efl::Event>::OK && le3.add() == efl::LL<efl::Event>::OK)
     result = true;
-  if( (LL<Event>::begin() != &le1 || le1.size() != 3 ))
+  if( (efl::LL<efl::Event>::begin() != &le1 || le1.size() != 3 ))
     result = false;
-  if( LL<Event>::begin()->next() != &le2)
+  if( efl::LL<efl::Event>::begin()->next() != &le2)
     result = false;
-  if( LL<Event>::begin()->next()->next() != &le3)
+  if( efl::LL<efl::Event>::begin()->next()->next() != &le3)
     result = false;
-  if( LL<Event>::begin()->next()->next()->next() != le3.end())
+  if( efl::LL<efl::Event>::begin()->next()->next()->next() != le3.end())
     result = false;
-  if( LL<Event>::end()->previous() != &le3)
+  if( efl::LL<efl::Event>::end()->previous() != &le3)
     result = false;
-  if( LL<Event>::end()->previous()->previous() != &le2)
+  if( efl::LL<efl::Event>::end()->previous()->previous() != &le2)
     result = false;
-  if( LL<Event>::end()->previous()->previous()->previous() != &le1)
+  if( efl::LL<efl::Event>::end()->previous()->previous()->previous() != &le1)
     result = false;
-  if( LL<Event>::end()->previous()->previous()->previous() != le1.begin())
+  if( efl::LL<efl::Event>::end()->previous()->previous()->previous() != le1.begin())
     result = false;
-  if( LL<Event>::end()->previous()->previous()->previous()->previous() != le1.end())
+  if( efl::LL<efl::Event>::end()->previous()->previous()->previous()->previous() != le1.end())
     result = false;
   if(result)
   {
@@ -396,16 +408,16 @@ int main()
   MyTimer   t2(2,3,2);
   MyTimer   t3(3,5,3);
   MyOneShotTimer      tos1(1,1);
-  LL<Timer> lt1(&t1);
-  LL<Timer> lt2(&t2);
-  LL<Timer> lt3(&t3);
-  LL<Timer> ltos1(&tos1);
+  efl::LL<efl::Timer> lt1(&t1);
+  efl::LL<efl::Timer> lt2(&t2);
+  efl::LL<efl::Timer> lt3(&t3);
+  efl::LL<efl::Timer> ltos1(&tos1);
 
-  LL<Timer>*  pScratchT;
+  efl::LL<efl::Timer>*  pScratchT;
 
-  co( "LL<Timer>::add()................................................");
-  if ( lt1.add() == LL<Timer>::OK && LL<Timer>::size() == 1 &&
-    LL<Timer>::begin() == &lt1)
+  co( "efl::LL<efl::Timer>::add()................................................");
+  if ( lt1.add() == efl::LL<efl::Timer>::OK && efl::LL<efl::Timer>::size() == 1 &&
+    efl::LL<efl::Timer>::begin() == &lt1)
   {
     coln( "OK" );
   }
@@ -414,10 +426,10 @@ int main()
     coln( "FAILED" );
   }
 
-  co( "LL<Timer>::add().and.add()......................................");
-  if ( lt2.add() == LL<Timer>::OK && LL<Timer>::size() == 2 && LL<Timer>::begin() == &lt1 &&
-    lt3.add() == LL<Timer>::OK && LL<Timer>::size() == 3 &&
-    (pScratchT = LL<Timer>::begin()) == &lt1 &&
+  co( "efl::LL<efl::Timer>::add().and.add()......................................");
+  if ( lt2.add() == efl::LL<efl::Timer>::OK && efl::LL<efl::Timer>::size() == 2 && efl::LL<efl::Timer>::begin() == &lt1 &&
+    lt3.add() == efl::LL<efl::Timer>::OK && efl::LL<efl::Timer>::size() == 3 &&
+    (pScratchT = efl::LL<efl::Timer>::begin()) == &lt1 &&
     (pScratchT = pScratchT->next()) == &lt2 &&
     (pScratchT = pScratchT->next()) == &lt3 &&
     (pScratchT = pScratchT->next()) == pScratchT->end())
@@ -429,17 +441,17 @@ int main()
     coln( "FAILED " );
   }
 
-  co( "LL<Timer>::doItems(5x1).........................................");
+  co( X("efl::LL<efl::Timer>::doItems(5x1)........................................."));
   delay(1);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
   delay(1);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
   delay(1);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
   delay(1);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
   delay(1);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
   coln(millis());
   co( t1.getCallCount());
   co( " ");
@@ -462,13 +474,13 @@ int main()
   t2.clearCallCount();
   t3.setCounter(t3.getPeriod());
   t3.clearCallCount();
-  co( "LL<Timer>::doItems(3x2).........................................");
+  co( "efl::LL<efl::Timer>::doItems(3x2).........................................");
   delay(2);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
   delay(2);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
   delay(2);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
 
   if( t1.getCallCount() == 3 && t2.getCallCount() == 3 && t3.getCallCount() == 2 )
   {
@@ -483,7 +495,7 @@ int main()
   //coln("..................................Verbose off");
   //delay(1000);
 
-  co( "LL<Timer>::doItems(3x3).........................................");
+  co( "efl::LL<efl::Timer>::doItems(3x3).........................................");
   t1.setCounter(t1.getPeriod());
   t1.clearCallCount();
   t2.setCounter(t2.getPeriod());
@@ -491,11 +503,11 @@ int main()
   t3.setCounter(t3.getPeriod());
   t3.clearCallCount();
   delay(3);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
   delay(3);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
   delay(3);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
 
   if( t1.getCallCount() == 3 && t2.getCallCount() == 3 && t3.getCallCount() == 3 )
   {
@@ -513,7 +525,7 @@ int main()
   t3.setCounter(t3.getPeriod());
   t3.clearCallCount();
 
-  co( "LL<Timer>::erase()(x3)..........................................");
+  co( "efl::LL<efl::Timer>::erase()(x3)..........................................");
   if( lt1.begin()->erase()->erase()->erase() == lt1.end() && lt1.size() == 0 )
   {
     coln( "OK" );
@@ -523,16 +535,16 @@ int main()
     coln( "FAILED" );
   }
 
-  co( "LL<Timer>::OneShotTimer.........................................");
-  LL<Timer>::rs addrs = ltos1.add();
+  co( "efl::LL<efl::Timer>::OneShotTimer.........................................");
+  efl::LL<efl::Timer>::rs addrs = ltos1.add();
   delay(1);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
   delay(1);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
   delay(1);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
   delay(1);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
   if (verbose) {
     co( "rs " );
     co(addrs);
@@ -542,7 +554,7 @@ int main()
     coln(tos1.getCallCount());
   }
 
-  if(addrs == LL<Timer>::OK &&  tos1.clearCallCount() == 1 && lt1.size() == 0 )
+  if(addrs == efl::LL<efl::Timer>::OK &&  tos1.clearCallCount() == 1 && lt1.size() == 0 )
   {
     coln( "OK" );
   }
@@ -551,14 +563,14 @@ int main()
     coln( "FAILED" );
   }
 
-  co( "LL<Timer>::OneShotTimer (same as previous)......................");
+  co( "efl::LL<efl::Timer>::OneShotTimer (same as previous)......................");
   addrs = ltos1.add();
   addMillis(1);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
   addMillis(1);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
   //cout << "rs " << addrs << " " << lt1.size() ;
-  if(addrs == LL<Timer>::OK &&  tos1.clearCallCount() == 1 && lt1.size() == 0 )
+  if(addrs == efl::LL<efl::Timer>::OK &&  tos1.clearCallCount() == 1 && lt1.size() == 0 )
   {
     coln( "OK" );
   }
@@ -568,14 +580,14 @@ int main()
   }
 
 
-  co( "LL<Timer>::OneShotTimer/repeat..................................");
+  co( "efl::LL<efl::Timer>::OneShotTimer/repeat..................................");
   addrs = ltos1.add();
   tos1.setRepeat(true, 1);
   addMillis(1);
-  LL<Timer>::doItems();
+  efl::LL<efl::Timer>::doItems();
   addMillis(1);
-  LL<Timer>::doItems();
-  if(addrs == LL<Timer>::OK &&  tos1.clearCallCount() == 2 && lt1.size() == 1 )
+  efl::LL<efl::Timer>::doItems();
+  if(addrs == efl::LL<efl::Timer>::OK &&  tos1.clearCallCount() == 2 && lt1.size() == 1 )
   {
     coln( "OK" );
   }

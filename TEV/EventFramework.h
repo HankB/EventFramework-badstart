@@ -1,4 +1,4 @@
-//namespace efl { // event framework library
+namespace efl { // event framework library
 
 /**
  * LL is a template class which adds the linked list to objects of type Item
@@ -8,6 +8,10 @@
  * long. It uses a sentinel to point tothe first real item in the list and the
  * last item in the list points to the sentinel.
  */
+
+typedef unsigned long int ulong;
+typedef unsigned int uint;
+typedef unsigned char uchar;
 
 template<class Item> class LL {
 private:
@@ -78,7 +82,7 @@ typename LL<Item>::rs LL<Item>::add() {
 template<class Item>
 typename LL<Item>::rs LL<Item>::push()
 {
-  if( this != pNext ) // already in the list"
+  if( this != pNext ) // already in the list
     return BAD_DUP;
   pNext = sentinel().pNext;
   sentinel().pNext = this;
@@ -174,28 +178,28 @@ void LL<Event>::doItems()
  */
 class Timer {
 private:
-  uLong   counter;
-  uLong   period;
+  ulong   counter;
+  ulong   period;
 public:
-  Timer(unsigned long c=1, unsigned long p=0):
+  Timer(ulong c=1, ulong p=0):
   counter(c),period(p) {
   }; // default to fire once after 1 ms
-  virtual bool callback(uLong late) {
+  virtual bool callback(ulong late) {
     if (verbose) {
       coln( "Timer:");
     }
     return false;
   };
-  uLong getCounter() {
+  ulong getCounter() {
     return counter;
   }
-  void setCounter(uLong c) {
+  void setCounter(ulong c) {
     counter=c;
   }
-  uLong getPeriod() {
+  ulong getPeriod() {
     return period;
   }
-  void setPeriod(uLong p) {
+  void setPeriod(ulong p) {
     period=p;
   }
 
@@ -204,9 +208,9 @@ public:
 template<>
 void LL<Timer>::doItems()
 {
-  static uLong prevMillis = 0;    // start when execution starts
-  uLong   nowMillis = millis();   // time now
-  uLong   deltaMillis = nowMillis - prevMillis;
+  static ulong prevMillis = 0;    // start when execution starts
+  ulong   nowMillis = millis();   // time now
+  ulong   deltaMillis = nowMillis - prevMillis;
 
   if(!deltaMillis)
     return;
@@ -214,7 +218,7 @@ void LL<Timer>::doItems()
   // iterate through timers to see which ones have downconted to or beyond zero
   for(LL<Timer>* pLL = begin(); pLL != end(); )
   {
-    uLong late=deltaMillis - pLL->pItem->getCounter();
+    ulong late=deltaMillis - pLL->pItem->getCounter();
     if( pLL->pItem->getCounter() <= deltaMillis )
     {
       if( pLL->pItem->callback(late) && pLL->pItem->getPeriod() > 0 ) // need both period and 'true' response to keep active
@@ -240,7 +244,7 @@ void LL<Timer>::doItems()
   }
   prevMillis = nowMillis;
 }
-//#define DIGITAL
+#define DIGITAL
 #if defined DIGITAL
 
 /**
@@ -248,86 +252,133 @@ void LL<Timer>::doItems()
  * debouncing the input for a specified time (in milliseconds.)
  */
 
-class Digital { // Monitor a digital input
+class Digital
+{
 public:
-  typedef enum {
-    INACTIVE,
-    GOING_ACTIVE,
-    ACTIVE,
-    GOING_INACTIVE,
-  } 
-  States;
+  typedef enum      /// interpreted state of the input
+  {
+    INACTIVE =      (1<<0),
+    GOING_ACTIVE =  (1<<1),
+    ACTIVE =        (1<<2),
+    GOING_INACTIVE =(1<<3),
+  } States;
 
-  typedef enum {
+  typedef enum/// input polarity
+  {
     ACT_HI,
     ACT_LO,
-  } 
-  Polarity;
+  } Polarity;
 
-private:    
-  uLong       debounce;
-  States      state;
-  Polarity    polarity;
+  typedef enum      /// valid digital input bits for an Arduino Uno
+  {                 // an enumerated value is chosen to
+      BIT_1 = 1,    // provide some guarantee that a valid
+      BIT_2,        // bit is specified.
+      BIT_3,
+      BIT_4,
+      BIT_5,
+      BIT_6,
+      BIT_7,
+      BIT_8,
+      BIT_9,
+      BIT_10,
+      BIT_11,
+      BIT_12,
+      BIT_13,
+      AN_0,    // pseudo digital inputs, I suppose.
+      AN_1,
+      AN_2,
+      AN_3,
+      AN_4,
+      AN_5,
+  } DigitalBit;
+ 
+
+private:
+  uint          debounce;
+  int           debounceCount;
+  States        state;
+  Polarity      polarity;
+  DigitalBit    pin;
+  uchar         interestMask;
+
+  
 
 public:
-  Digital(unsigned long d=1, Polarity p=ACT_HI):
-  debounce(d),polarity(p) {
-  }; // default to fire once after 1 ms
-  virtual bool callback(uLong late) {
-    if (verbose) {
-      coln( "Digital:");
+  Digital ( DigitalBit b,int d = 1, Polarity p = ACT_HI, uchar interest = (INACTIVE|ACTIVE)):
+  debounce (d), state(INACTIVE), polarity(p), pin(b), interestMask(interest)
+  {
+     pinMode(pin, INPUT);      // should this be done in setup?
+  };				// defaults: 1 ms debounce and active high polarity
+                    // and interested transitions to inactive or active only
+
+  States getState() { return state;};
+  void setState(States s)
+  {
+      state=s;
+      if( interestMask & state ) 
+          callback(0, state);
+  };
+  bool getSense() { return polarity?digitalRead(pin):!digitalRead(pin); };
+  uint setDebounce() { return debounceCount = debounce; };
+  int decrementDebounce() { return --debounceCount; };
+  virtual bool callback (ulong late, States newState)    /// callback on state changes
+  {
+    if (verbose)
+    {
+	  coln ("Digital:");
     }
     return false;
   };
-
 };
 
-/*
 template<>
- void LL<Timer>::doItems()
- {
- static uLong prevMillis = 0;    // start when execution starts
- uLong   nowMillis = millis();   // time now
- uLong   deltaMillis = nowMillis - prevMillis;
+void LL<Digital>::doItems()
+{
+     static ulong prevMillis = 0;    // start when execution starts
+     ulong   nowMillis = millis();   // time now
+     ulong   deltaMillis = nowMillis - prevMillis;
  
- if(!deltaMillis)
- return;
+     if(!deltaMillis)
+       return;
  
- if(verbose) walk();
- 
+     if(verbose) walk();
+     
  // iterate through timers to see which ones have downconted to or beyond zero
- for(LL<Timer>* pLL = begin(); pLL != end(); )
- {
- uLong late=deltaMillis - pLL->pItem->getCounter();
- if( pLL->pItem->getCounter() <= deltaMillis )
- {
- if( pLL->pItem->callback(late) && pLL->pItem->getPeriod() > 0 ) // need both period and 'true' response to keep active
- {
- // policy decision here. Do we set the counter to 0 or less if
- // we're late by the period or more? No, I guess...
- if( late >= pLL->pItem->getPeriod())
- pLL->pItem->setCounter(1);
- else
- pLL->pItem->setCounter(pLL->pItem->getPeriod()-late);
- pLL = pLL->next();
- }
- else
- {
- pLL = pLL->erase();
- }
- }
- else
- {
- pLL->pItem->setCounter(pLL->pItem->getCounter()-deltaMillis);
- pLL = pLL->next();
- }
- //sleep(1);
- }
- prevMillis = nowMillis;
- }
- */
+     for(LL<Digital>* pLL = begin(); pLL != end(); )
+     {
+       // scan all digital inputs
+         switch(pLL->pItem->getState()) {
+             case Digital::INACTIVE:
+                if( pLL->pItem->getSense())
+                {
+                    if( pLL->pItem->setDebounce() > 0 )
+                        pLL->pItem->setState(Digital::GOING_ACTIVE);
+                    else
+                        pLL->pItem->setState(Digital::GOING_ACTIVE);
+                }
+                 break;
+             case Digital::GOING_ACTIVE:
+                if( pLL->pItem->decrementDebounce() <= 0)
+                {
+                    if( pLL->pItem->getS() )
+                        pLL->pItem->setState(Digital::ACTIVE);
+                    else
+                        pLL->pItem->setState(Digital::INACTIVE);
+                 break;
+             case Digital::ACTIVE:
+                 break;
+             case Digital::GOING_INACTIVE:
+                 break;
+             default:
+                 pLL->pItem->setState(Digital::INACTIVE); // what else to do here?
+                 break;
+          }
+      }
+    prevMillis = nowMillis;
+}
+
 #endif //defined DIGITAL
 
-//} // namespace efl
+} // namespace efl
 
 
