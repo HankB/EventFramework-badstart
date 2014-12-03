@@ -312,11 +312,18 @@ public:
                     // and interested transitions to inactive or active only
 
   States getState() { return state;};
-  void setState(States s)
+
+    /*
+     * I hate to pass in the flag to indicate that this is a 'significant' change worthy of a callback
+     * but the logic is so much easier where the states are managed.
+     */
+  void setState(States s, bool isSignificant)
   {
+      States oldstate = state; 
       state=s;
-      if( interestMask & state ) 
+      if( (interestMask & state) && isSignificant ) {
           callback(0, state);
+    }
   };
   bool getSense() { return polarity?digitalRead(pin):!digitalRead(pin); };
   uint setDebounce() { return debounceCount = debounce; };
@@ -351,16 +358,21 @@ void LL<Digital>::doItems()
              case Digital::INACTIVE:
                 if( pLL->pItem->getSense())
                 {
-                    if( pLL->pItem->setDebounce() > 0 )
+                    if( pLL->pItem->getDebounce() > 0 )
+                    {
                         pLL->pItem->setState(Digital::GOING_ACTIVE);
+                        pLL->pItem->setDebounce(pLL->pItem->getDebounce());
+                    }
                     else
-                        pLL->pItem->setState(Digital::GOING_ACTIVE);
+                    {
+                        pLL->pItem->setState(Digital::ACTIVE);
+                    }
                 }
                  break;
              case Digital::GOING_ACTIVE:
-                if( pLL->pItem->decrementDebounce() <= 0)
+                if( pLL->pItem->decrementDebounce(deltaMillis) <= 0)
                 {
-                    if( pLL->pItem->getS() )
+                    if( pLL->pItem->getSense() )
                         pLL->pItem->setState(Digital::ACTIVE);
                     else
                         pLL->pItem->setState(Digital::INACTIVE);
