@@ -296,7 +296,7 @@ public:
 
 private:
   uint          debounce;
-  int           debounceCount;
+  int           debounceCounter;
   States        state;
   Polarity      polarity;
   DigitalBit    pin;
@@ -318,40 +318,36 @@ public:
      * I hate to pass in the flag to indicate that this is a 'significant' change worthy of a callback
      * but the logic is so much easier where the states are managed.
      */
-  void setState(States s, bool isSignificant)
-  {
-      States oldstate = state; 
+  void setState(States s) {
+      States oldState = state;
       state=s;
-      if( (interestMask & state) && isSignificant ) {
-          callback(0, state);
-    }
+      if( interestMask & state)
+          callback(0, state, oldState);
   };
   bool getSense() { return polarity?digitalRead(pin):!digitalRead(pin); };
-  uint setDebounce() { return debounceCount = debounce; };
-  int decrementDebounce() { return --debounceCount; };
-  virtual bool callback (ulong late, States newState)    /// callback on state changes
-  {
+  uint setDebounceCounter() { return debounceCounter = debounce; };
+  uint getDebounce() { return debounce; };
+  int decrementDebounce(uint delta) { return debounceCounter -= delta; };
+  virtual bool callback (ulong late, States newState, States oldState) {   /// callback on state changes
+
     if (verbose)
-    {
-	  coln ("Digital:");
-    }
+	  coln (X("Digital:"));
     return false;
   };
 };
 
 template<>
-void LL<Digital>::doItems()
-{
+void LL<Digital>::doItems() {
      static ulong prevMillis = 0;    // start when execution starts
      ulong   nowMillis = millis();   // time now
-     ulong   deltaMillis = nowMillis - prevMillis;
+     uint   deltaMillis = nowMillis - prevMillis;
  
      if(!deltaMillis)
        return;
  
      if(verbose) walk();
      
- // iterate through timers to see which ones have downconted to or beyond zero
+ // iterate through timers to see which ones have downcounted to or beyond zero
      for(LL<Digital>* pLL = begin(); pLL != end(); )
      {
        // scan all digital inputs
@@ -362,7 +358,7 @@ void LL<Digital>::doItems()
                     if( pLL->pItem->getDebounce() > 0 )
                     {
                         pLL->pItem->setState(Digital::GOING_ACTIVE);
-                        pLL->pItem->setDebounce(pLL->pItem->getDebounce());
+                        pLL->pItem->setDebounceCounter();
                     }
                     else
                     {
@@ -388,6 +384,7 @@ void LL<Digital>::doItems()
           }
       }
     prevMillis = nowMillis;
+    }
 }
 
 #endif //defined DIGITAL

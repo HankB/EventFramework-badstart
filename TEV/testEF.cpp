@@ -13,7 +13,7 @@
 #define co(x) Serial.print(x);
 #define coln(x) Serial.println(x)
 
-void addMillis(uLong m) {
+void addMillis(ulong m) {
   delay(m);
 }
 
@@ -29,7 +29,8 @@ void sleep(int x) {
 #include <unistd.h>
 using namespace std;
 
-typedef unsigned long uLong; // unsigned long int gets a bit tedious
+typedef unsigned long ulong; // unsigned long int gets a bit tedious
+typedef unsigned int  uint; // unsigned long int gets a bit tedious
 
 // co => console output
 #define co(x) cout << (x)
@@ -37,12 +38,12 @@ typedef unsigned long uLong; // unsigned long int gets a bit tedious
 
 // static const int sleepTime=0;
 
-// g++ -Wall -DDEBUG  -o testEF testEF.cpp
+// g++ -Wall -o testEF testEF.cpp
 
 // now stub out some Arduino calls
 
-uLong millisVal=0;
-void addMillis(uLong m) {
+ulong millisVal=0;
+void addMillis(ulong m) {
     millisVal += m;
 }
 unsigned long millis() {
@@ -58,7 +59,7 @@ void pinMode(int pin, int direction)
     return;
 }
 
-struct { int pin; bool val; } IOmap[] = {
+static struct { int pin; bool val; } IOmap[] = {
 	{  0, false }, // RX, serial I/O - don't use
 	{  0, false }, // TX - don't use
 	{  0, false },
@@ -89,7 +90,7 @@ bool digitalRead(unsigned int p) {
 #define F(x) x
 #define Printf printf
 
-void digitalWrite(int pin, unsigned char value) {
+void digitalWrite(uint pin, unsigned char value) {
     if (pin < sizeof(IOmap)/sizeof(IOmap[0]))
 	IOmap[IOmap[pin].pin].val = value;
     Printf(F("wrote %d to bit %d mapped to %d\n"), value, pin, IOmap[pin].pin);
@@ -111,7 +112,7 @@ class MyTimer:
     public efl::Timer  // periodic timer by default
 {
 private:
-    virtual bool callback(uLong late) {
+    virtual bool callback(ulong late) {
         callCount++;
         /* if (verbose || late) {
          co( "MyTimer: ");
@@ -122,7 +123,7 @@ private:
     int     id;
     int     callCount;
 public:
-    MyTimer(int i, uLong c=1, uLong p=1):
+    MyTimer(int i, ulong c=1, ulong p=1):
         efl::Timer(c,p),id(i),callCount(0) {
     };
     int getCallCount() {
@@ -139,7 +140,7 @@ class MyOneShotTimer:
     public efl::Timer
 {
 private:
-    virtual bool callback(uLong late)
+    virtual bool callback(ulong late)
     {
         callCount++;
         if (verbose) {
@@ -163,7 +164,7 @@ public:
         callCount=0;
         return rc;
     };
-    void setRepeat(bool r, uLong p) {
+    void setRepeat(bool r, ulong p) {
         retVal=r;    // enforce consistency in args???
         setPeriod(p);
     }
@@ -190,8 +191,7 @@ public:
 };
 
 class RepeatEvent:
-    public MyEvent  // this event remains in the queue and will execute each time Event list is examined
-{
+    public MyEvent { // this event remains in the queue and will execute each time Event list is examined
 public:
     RepeatEvent(int n):
         MyEvent(n) {
@@ -211,7 +211,7 @@ class MyDigital:
     public efl::Digital  //
 {
 private:
-    virtual bool callback(uLong late, States newstate, States oldState) {
+    virtual bool callback(ulong late, States newstate, States oldState) {
         callCount++;
         if (verbose || late) {
 	    Printf(X("Digital::callback( late:%lu state:%d oldst:%d\n"), late, newstate, oldState );
@@ -244,11 +244,10 @@ void setup()
 }
 
 void loop()
-{
 #else
 int main()
-{
 #endif
+{
 
 #if defined TEST_EVENT
     MyEvent         e1(1);
@@ -690,7 +689,5 @@ int main()
 
 #endif //defined TEST_DIGITAL
 
-
-
+    return 0;
 }
-
