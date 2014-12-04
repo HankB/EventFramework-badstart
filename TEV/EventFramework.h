@@ -216,7 +216,7 @@ void LL<Timer>::doItems()
   if(!deltaMillis)
     return;
 
-  // iterate through timers to see which ones have downconted to or beyond zero
+  // iterate through timers to see which ones have down counted to or beyond zero
   for(LL<Timer>* pLL = begin(); pLL != end(); )
   {
     ulong late=deltaMillis - pLL->pItem->getCounter();
@@ -258,16 +258,16 @@ class Digital
 public:
   typedef enum      /// interpreted state of the input
   {
-    INACTIVE =      (1<<0),
-    GOING_ACTIVE =  (1<<1),
-    ACTIVE =        (1<<2),
-    GOING_INACTIVE =(1<<3),
+    INACTIVE =      (1<<0),	//1
+    GOING_ACTIVE =  (1<<1),	//2
+    ACTIVE =        (1<<2),	//4
+    GOING_INACTIVE =(1<<3),	//8
   } States;
 
   typedef enum/// input polarity
   {
-    ACT_HI,
     ACT_LO,
+    ACT_HI,
   } Polarity;
 
   typedef enum      /// valid digital input bits for an Arduino Uno
@@ -295,6 +295,7 @@ public:
  
 
 private:
+  int           id;
   uint          debounce;
   int           debounceCounter;
   States        state;
@@ -305,8 +306,8 @@ private:
   
 
 public:
-  Digital ( DigitalBit b,int d = 1, Polarity p = ACT_HI, uchar interest = (INACTIVE|ACTIVE)):
-  debounce (d), state(INACTIVE), polarity(p), pin(b), interestMask(interest)
+  Digital( int id, DigitalBit b,int d = 1, Polarity p = ACT_HI, uchar interest = (INACTIVE|ACTIVE)):
+  id(id), debounce(d), state(INACTIVE), polarity(p), pin(b), interestMask(interest)
   {
      pinMode(pin, INPUT);      // should this be done in setup?
   };				// defaults: 1 ms debounce and active high polarity
@@ -324,7 +325,8 @@ public:
       if( interestMask & state)
           callback(0, state, oldState);
   };
-  bool getSense() { return polarity?digitalRead(pin):!digitalRead(pin); };
+  bool getSense() { return (polarity==ACT_HI)?digitalRead(pin):!digitalRead(pin); };
+  int getID() { return id; };
   uint setDebounceCounter() { return debounceCounter = debounce; };
   uint getDebounce() { return debounce; };
   int decrementDebounce(uint delta) { return debounceCounter -= delta; };
@@ -345,46 +347,55 @@ void LL<Digital>::doItems() {
      if(!deltaMillis)
        return;
  
-     if(verbose) walk();
+//     if(verbose) walk();
      
  // iterate through timers to see which ones have downcounted to or beyond zero
-     for(LL<Digital>* pLL = begin(); pLL != end(); )
-     {
+     for(LL<Digital>* pLL = begin(); pLL != end(); pLL = pLL->next()) {
        // scan all digital inputs
          switch(pLL->pItem->getState()) {
              case Digital::INACTIVE:
-                if( pLL->pItem->getSense())
-                {
-                    if( pLL->pItem->getDebounce() > 0 )
-                    {
+                if( pLL->pItem->getSense()) {
+                    Printf( "pItem->id(%d) going active.\n", pLL->pItem->getID());
+                    if( pLL->pItem->getDebounce() > 0 ) {
                         pLL->pItem->setState(Digital::GOING_ACTIVE);
                         pLL->pItem->setDebounceCounter();
                     }
-                    else
-                    {
+                    else {
                         pLL->pItem->setState(Digital::ACTIVE);
                     }
                 }
-                 break;
+                break;
+
+             case Digital::GOING_INACTIVE:
              case Digital::GOING_ACTIVE:
-                if( pLL->pItem->decrementDebounce(deltaMillis) <= 0)
-                {
+                if( pLL->pItem->decrementDebounce(deltaMillis) <= 0) {
+                    Printf("Debounce complete id(%d)\n", pLL->pItem->getID());
                     if( pLL->pItem->getSense() )
                         pLL->pItem->setState(Digital::ACTIVE);
                     else
                         pLL->pItem->setState(Digital::INACTIVE);
+                 }
                  break;
+
              case Digital::ACTIVE:
+                if( !pLL->pItem->getSense()) {
+                    Printf( "pItem->id(%d) going inactive.\n", pLL->pItem->getID());
+                    if( pLL->pItem->getDebounce() > 0 ) {
+                        pLL->pItem->setState(Digital::GOING_INACTIVE);
+                        pLL->pItem->setDebounceCounter();
+                    }
+                    else {
+                        pLL->pItem->setState(Digital::INACTIVE);
+                    }
+                }
                  break;
-             case Digital::GOING_INACTIVE:
-                 break;
+
              default:
                  pLL->pItem->setState(Digital::INACTIVE); // what else to do here?
                  break;
           }
       }
     prevMillis = nowMillis;
-    }
 }
 
 #endif //defined DIGITAL

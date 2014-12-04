@@ -93,7 +93,7 @@ bool digitalRead(unsigned int p) {
 void digitalWrite(uint pin, unsigned char value) {
     if (pin < sizeof(IOmap)/sizeof(IOmap[0]))
 	IOmap[IOmap[pin].pin].val = value;
-    Printf(F("wrote %d to bit %d mapped to %d\n"), value, pin, IOmap[pin].pin);
+    Printf(F("wrote %d to bit %d mapped to %d at %ld\n"), value, pin, IOmap[pin].pin, millis());
 }
 
 
@@ -214,16 +214,14 @@ private:
     virtual bool callback(ulong late, States newstate, States oldState) {
         callCount++;
         if (verbose || late) {
-	    Printf(X("Digital::callback( late:%lu state:%d oldst:%d\n"), late, newstate, oldState );
-            coln(id);
+	    Printf(X("Digital::callback( late:%lu state:%d oldst:%d) at %ld\n"), late, newstate, oldState, millis());
         }
         return true;
     };
-    int     id;
     int     callCount;
 public:
     MyDigital(int i, DigitalBit b, int d=1, Polarity p = ACT_HI, efl::uchar interest = (INACTIVE|ACTIVE)):
-        efl::Digital(b,d, p, interest),id(i),callCount(0) {
+        efl::Digital(i, b,d, p, interest),callCount(0) {
     };
     int getCallCount() {
         return callCount;
@@ -674,17 +672,33 @@ int main()
     verbose=true;
     //MyDigital(int i, DigitalBit b, int d=1, Polarity p = ACT_HI, efl::uchar interest = (INACTIVE|ACTIVE))
 
-    MyDigital d1 = MyDigital(0, MyDigital::BIT_5, 1, MyDigital::ACT_HI, (MyDigital::INACTIVE|MyDigital::ACTIVE));
-    MyDigital d2 = MyDigital(1, MyDigital::BIT_7, 2, MyDigital::ACT_LO, (MyDigital::INACTIVE|MyDigital::ACTIVE));
-    MyDigital d3 = MyDigital(1, MyDigital::AN_0, 2, MyDigital::ACT_HI, (MyDigital::INACTIVE|MyDigital::ACTIVE));
+    MyDigital d1 = MyDigital(1, MyDigital::BIT_5, 1, MyDigital::ACT_HI, (MyDigital::INACTIVE|MyDigital::ACTIVE));
+    //MyDigital d2 = MyDigital(2, MyDigital::BIT_7, 2, MyDigital::ACT_LO, (MyDigital::INACTIVE|MyDigital::ACTIVE));
+    //MyDigital d3 = MyDigital(3, MyDigital::AN_0, 2, MyDigital::ACT_HI, (MyDigital::INACTIVE|MyDigital::ACTIVE));
     efl::LL<efl::Digital> ld1(&d1); ld1.add();
     //efl::LL<efl::Digital> ld2(&d2); ld2.add();
     //efl::LL<efl::Digital> ld3(&d3); ld3.add();
 
     efl::LL<efl::Digital>::doItems();
+    addMillis(1);
     efl::LL<efl::Digital>::doItems();
+    addMillis(1);
+    efl::LL<efl::Digital>::doItems();
+    addMillis(1);
+    efl::LL<efl::Digital>::doItems();
+
     digitalWrite(4, 1);
+
+    addMillis(1);
     efl::LL<efl::Digital>::doItems();
+    addMillis(1);
+    efl::LL<efl::Digital>::doItems();
+    addMillis(1);
+
+    digitalWrite(4, 0);
+
+    efl::LL<efl::Digital>::doItems();
+    addMillis(1);
     efl::LL<efl::Digital>::doItems();
 
 #endif //defined TEST_DIGITAL
