@@ -214,7 +214,7 @@ private:
     virtual bool callback(ulong late, States newstate, States oldState) {
         callCount++;
         if (verbose || late) {
-	    Printf(X("Digital::callback( late:%lu state:%d oldst:%d) at %ld\n"), late, newstate, oldState, millis());
+	    Printf(X("Digital::callback(id:%d late:%lu state:%d oldst:%d) at %ld\n"), getID(), late, newstate, oldState, millis());
         }
         return true;
     };
@@ -231,6 +231,7 @@ public:
         callCount=0;
         return rc;
     };
+    virtual ~MyDigital(){} // virtual destructor to quash warnings
 };
 #endif //defined TEST_DIGITAL
 
@@ -673,10 +674,10 @@ int main()
     //MyDigital(int i, DigitalBit b, int d=1, Polarity p = ACT_HI, efl::uchar interest = (INACTIVE|ACTIVE))
 
     MyDigital d1 = MyDigital(1, MyDigital::BIT_5, 1, MyDigital::ACT_HI, (MyDigital::INACTIVE|MyDigital::ACTIVE));
-    //MyDigital d2 = MyDigital(2, MyDigital::BIT_7, 2, MyDigital::ACT_LO, (MyDigital::INACTIVE|MyDigital::ACTIVE));
+    MyDigital d2 = MyDigital(2, MyDigital::BIT_7, 3, MyDigital::ACT_LO, (MyDigital::INACTIVE|MyDigital::ACTIVE));
     //MyDigital d3 = MyDigital(3, MyDigital::AN_0, 2, MyDigital::ACT_HI, (MyDigital::INACTIVE|MyDigital::ACTIVE));
     efl::LL<efl::Digital> ld1(&d1); ld1.add();
-    //efl::LL<efl::Digital> ld2(&d2); ld2.add();
+    efl::LL<efl::Digital> ld2(&d2); ld2.add();
     //efl::LL<efl::Digital> ld3(&d3); ld3.add();
 
     efl::LL<efl::Digital>::doItems();
@@ -687,7 +688,8 @@ int main()
     addMillis(1);
     efl::LL<efl::Digital>::doItems();
 
-    digitalWrite(4, 1);
+    digitalWrite(4, 1);		// drive d1 high (active, 1 count debounce)
+    digitalWrite(6, 1);  	// drive d2 high (inactive, 3 count debounce)
 
     addMillis(1);
     efl::LL<efl::Digital>::doItems();
@@ -697,6 +699,10 @@ int main()
 
     digitalWrite(4, 0);
 
+    efl::LL<efl::Digital>::doItems();
+    addMillis(1);
+    efl::LL<efl::Digital>::doItems();
+    addMillis(1);
     efl::LL<efl::Digital>::doItems();
     addMillis(1);
     efl::LL<efl::Digital>::doItems();

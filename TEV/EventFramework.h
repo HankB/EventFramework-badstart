@@ -161,6 +161,7 @@ public:
     if (verbose) coln( "Event:");
     return false;
   };
+  virtual ~Event(){} // virtual destructor to quash warnings
 };
 
 template<>
@@ -203,7 +204,7 @@ public:
   void setPeriod(ulong p) {
     period=p;
   }
-
+  virtual ~Timer(){}; // virtual destructor to quash warnings
 };
 
 template<>
@@ -307,11 +308,11 @@ private:
 
 public:
   Digital( int id, DigitalBit b,int d = 1, Polarity p = ACT_HI, uchar interest = (INACTIVE|ACTIVE)):
-  id(id), debounce(d), state(INACTIVE), polarity(p), pin(b), interestMask(interest)
+  id(id), debounce(d), debounceCounter(0), state(INACTIVE), polarity(p), pin(b), interestMask(interest)
   {
      pinMode(pin, INPUT);      // should this be done in setup?
   };				// defaults: 1 ms debounce and active high polarity
-                    // and interested transitions to inactive or active only
+                    // and interest in transitions to inactive or active only
 
   States getState() { return state;};
 
@@ -336,6 +337,7 @@ public:
 	  coln (X("Digital:"));
     return false;
   };
+  virtual ~Digital() {}; // nothing to destroy
 };
 
 template<>
