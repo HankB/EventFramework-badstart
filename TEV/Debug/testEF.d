@@ -1,3 +1,3 @@
-testEF.d: ../testEF.cpp ../EventFramework.h
+testEF.o: ../testEF.cpp ../EventFramework.h
 
 ../EventFramework.h:
