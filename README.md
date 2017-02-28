@@ -1,5 +1,9 @@
-# EventFramework #
+This repo is the result of committing something that won't work in the Arduino IDE. I'm not even sure it 
+includes working code. (It's been too long since I worked on it.) I'll redreate a repo with something that 
+at least compiles.
 
+# EventFramework #
+ 
 ## Overview ##
 
 This is a facility intended to provide an event framework for
